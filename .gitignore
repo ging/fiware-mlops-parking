@@ -10,4 +10,4 @@ venv
 .vscode
 .bloop
 bin
-
+airflow/logs

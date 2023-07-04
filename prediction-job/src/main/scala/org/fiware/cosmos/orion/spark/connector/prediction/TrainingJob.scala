@@ -2,126 +2,93 @@ package org.fiware.cosmos.orion.spark.connector.prediction
 
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.evaluation.RegressionEvaluator
-import org.apache.spark.ml.feature.{VectorAssembler, VectorIndexer}
-import org.apache.spark.ml.regression._
+import org.apache.spark.ml.feature.{VectorAssembler, VectorIndexer, StringIndexer, OneHotEncoder}
+import org.apache.spark.ml.classification._
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
-import java.io.{File,PrintWriter}
-import org.mlflow.tracking.{MlflowClient,MlflowClientVersion}
-import org.mlflow.tracking.creds.BasicMlflowHostCreds
-import org.mlflow.api.proto.Service.{RunStatus, RunInfo}
-import org.mlflow.api.proto.ModelRegistry.ModelVersion  
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import org.apache.spark.sql.types.{IntegerType, StringType, DoubleType, StructField, StructType}
 
 object TrainingJob {
+
   def main(args: Array[String]): Unit = {
-    train()
+    train().write.overwrite().save("./prediction-job/model")
 
   }
-  def train() {
+  
+  def train() = {
+    // ocupation= round((1-available)*10)
     val schema = StructType(
-      Array(StructField("id", IntegerType),
-            StructField("date", StringType),
-            StructField("time", IntegerType),
-            StructField("items", IntegerType),
+      Array(StructField("name", StringType),
+            StructField("availableSpotNumber", IntegerType),
+            StructField("timestamp", StringType),
+            StructField("weekday", IntegerType),
+            StructField("total", IntegerType),
             StructField("day", IntegerType),
             StructField("month", IntegerType),
-            StructField("year", IntegerType),
-            StructField("weekDay", IntegerType)
+            StructField("hour", IntegerType),
+            StructField("minute", IntegerType),
+            StructField("hour_interval", IntegerType),
+            StructField("time", StringType),  
+            StructField("available", DoubleType), 
+            StructField("occupation", IntegerType)                   
       ))
-
-    // Initialize MLFlow connection and experiment
-    val mlFlowOpsClient = new MlflowClient("http://localhost:5000")
-    val experimentDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS"))
-    val experimentName = s"Experiment_$experimentDateTime"
-    val experimentId = mlFlowOpsClient.createExperiment(experimentName)
-    val runInfo = mlFlowOpsClient.createRun(experimentId)
-    val runId = runInfo.getRunId()
-    mlFlowOpsClient.setExperimentTag(experimentId, "description", "Model for predicting supermarket state")
-    mlFlowOpsClient.setTag(runId, "createdAt", experimentDateTime)
-    
-
     val spark = SparkSession
       .builder
-      .appName("MLOpsTrainingSupermarket")
+      .appName("TrainingParkingMalaga")
       .master("local[*]")
       .getOrCreate()
-    import spark.implicits._
 
+    import spark.implicits._
     spark.sparkContext.setLogLevel("WARN")
 
-    // Load and parse the data file, converting it to a DataFrame.
+    // convert to dataframe
     val data = spark.read.format("csv")
       .schema(schema)
       .option("header", "true")
       .option("delimiter", ",")
-      .load("../prediction-job/carrefour_data.csv")
-      .drop("id")
-      .withColumnRenamed("items","label")
+      .load("./prediction-job/malaga_parking.csv")
 
-    val assembler = new VectorAssembler()
-        .setInputCols(Array("year", "month", "day", "weekDay","time" ))
-        .setOutputCol("features")
+    // onehotencoder
+    val it = Array("name", "weekday")
+    val stringIndexers = it.map (
+        c => new StringIndexer().setInputCol(c).setOutputCol(s"${c}-index")
+    )
+    val oneHotEncoders = it.map (
+        c => new OneHotEncoder().setInputCol(s"${c}-index").setOutputCol(s"${c}-ohe")
+    )
+              
+    val vectorAssembler  = new VectorAssembler()
+      .setInputCols(Array("name-ohe","weekday-ohe","hour","month"))
+      .setOutputCol("features")
 
     // Automatically identify categorical features, and index them.
-    var transformedDf = assembler.transform(data)
+    // var transformedDf = vectorAssembler.transform(data)
 
-    // Split the data into training and test sets (30% held out for testing).
-    val Array(trainingData, testData) = transformedDf.randomSplit(Array(0.8, 0.2))
-
-    val maxDepth = 30
-    val maxBins = 32
-    val numTrees = 100
-
-    // Log params in MLFlow
-    mlFlowOpsClient.logParam(runId, "maxDepth", maxDepth.toString)
-    mlFlowOpsClient.logParam(runId, "maxBins", maxBins.toString)
-    mlFlowOpsClient.logParam(runId, "numTrees", numTrees.toString)
+    //val Array(trainingData, testData) = transformedDf.randomSplit(Array(0.8, 0.2))
 
 
-    // Train a RandomForest model.
-    val rf = new RandomForestRegressor()
-      .setLabelCol("label")
+    val rfc = new RandomForestClassifier()
+      .setNumTrees(200)
+      .setFeatureSubsetStrategy("log2")
+      .setLabelCol("occupation")
       .setFeaturesCol("features")
-      .setMaxDepth(maxDepth)
-      .setMaxBins(maxBins)
-      .setNumTrees(numTrees)
 
-    val featureIndexer = new VectorIndexer()
-      .setInputCol("features")
-      .setOutputCol("indexedFeatures")
-      .fit(transformedDf)
-
-    // Chain indexer and forest in a Pipeline.
-    val pipeline = new Pipeline()
-    .setStages(Array(featureIndexer, rf))
-    // Train model. This also runs the indexer.
+    val pipeline = new Pipeline().setStages(stringIndexers ++ oneHotEncoders ++ Array(vectorAssembler,rfc))
+    val Array(trainingData,testData) = data.randomSplit(Array(0.8,0.2))
     val model = pipeline.fit(trainingData)
-    // Make predictions.
     val predictions = model.transform(testData)
 
-    // Select (prediction, true label) and compute test error.
-    val evaluator = new RegressionEvaluator()
-      .setLabelCol("label")
-      .setPredictionCol("prediction")
+    predictions.select("prediction","occupation", "hour", "weekday", "name","month").show(10)
 
-    val rmse = evaluator.setMetricName("rmse").evaluate(predictions)
-    val r2 = evaluator.setMetricName("r2").evaluate(predictions)
+    // val evaluator = new MulticlassClassificationEvaluator()
+    //   .setLabelCol("occupation")
+    //   .setPredictionCol("prediction")
+    //   .setMetricName("accuracy")
+    // val accuracy = evaluator.evaluate(predictions)
+    // println(s"Accuracy = ${accuracy}")
 
-    // Log metrics in mlflow
-    mlFlowOpsClient.logMetric(runId, "rmse", rmse)
-    mlFlowOpsClient.logMetric(runId, "r2", r2)
+    //println(s"Learned classification forest model:\n ${rfModel.toDebugString}")
 
-    
-    
-    val modelPath = "./prediction-job/model"
-    val rfModel = model.stages(1).asInstanceOf[RandomForestRegressionModel]
-    rfModel.write.overwrite().save(modelPath)
-
-    //Register model
-    mlFlowOpsClient.logArtifact(runId, new File(modelPath))
-    mlFlowOpsClient.setTerminated(runId, RunStatus.FINISHED, System.currentTimeMillis())
-
+    //return the model with the pipeline
+    model
   }
 }

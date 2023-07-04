@@ -1,4 +1,2 @@
 requests
 pathlib
-mlflow==1.30.0
-pyspark==2.4.5

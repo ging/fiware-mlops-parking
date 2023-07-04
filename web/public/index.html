@@ -1,48 +1,231 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
-	<meta charset="UTF-8">
-	<title>FIWARE Purchase volume prediction</title>
-	<script src="jquery-1.10.1.min.js"></script>
-	<script src="bootstrap.min.js"></script>
-	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
-	<link rel="stylesheet" href="bootstrap.min.css"></link>
-	<link rel="stylesheet" href="basic.css"></link>
-	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TFM</title>
+    <script src="https://cdn.socket.io/4.2.0/socket.io.min.js" integrity="sha384-PiBR5S00EtOj2Lto9Uu81cmoyZqR57XcOna1oAuVuIEjzj0wpqDVfD0JA9eXlRsj" crossorigin="anonymous"></script>
+    <script src="jquery-1.10.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="bulma-calendar.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/15181efa86.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://unpkg.com/bulma@0.9.0/css/bulma.min.css" />
+    <link rel="stylesheet" type="text/css" href="../css/register.css">
+    <link href="basic.css" rel="stylesheet" />
+    <link href="bulma-calendar.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="basic.css"></link>
 </head>
+
 <body>
-	<div class="container">
-		<img id="logo" src="fi-ware_logo.png">
-		<br/>
-		<br/>
-		<h1>Predict the number of people in the supermarket queue</h1>
-		<br/>
-		<br/>
-		<div class="row">
-	      <div class="col-6">
-      		<u><h2>Current status</h2></u>
-			<br/>
-		  	<h1 class="simulationResult" id="currentStatus"></h1>	
-	      </div>
-	      <div class="col-6">
-			<u><h2>Status in two hours</h2></u>
-			<br/>
-			<h1 class="simulationResult" id="forecastStatus"></h1>
-	      </div>
-      	</div>
-		<br/>
-		<br/>
-		<div class="row">
-			<div class="col-12">
-				<div>
-					<h2 class="simulationResult" id="dateTime">-</h2>
-				</div>	
-			</div>
-			</div>
-	</div>
-	<br/><br/>
-	<script src="/predict.js"></script>
+    <section class="container">
+        <div class="columns is-multiline is-vcentered">
+            <div class="column is-12 register">
+                <div class="columns">
+                    <div class="column left is-one-third">
+                        <h1 class="title is-1">Ocupación Parkings Málaga</h1>
+                        <p>Predictor de la ocupación de los parkings públicos de la ciudad de Málaga, utilizando OpenData y FIWARE. </p>
+                        <br/>
+                        <nav class="level">
+                            <div class="level-left">
+                                <div class="level-item">
+                                    <span class="icon">
+                                        <i class="fab fa-github"></i>
+                                    </span> &emsp;
+                                    <span class="icon">
+                                        <i class="fas fa-envelope"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="level-right">
+                            </div>
+                        </nav>
+                        <small class="level-item" style="color: var(--textLight)">
+							Proyecto desarrollado por: Jose Antonio Hurtado Morón (TFM) y GING
+						</small>
+                    </div>
+                    <div class="column right has-text-centered is-two-thirds">
+                        <div class="block">
+                            <h1 class="title is-4">Predecir ocupación</h1>
+                            <p class="description">Selecciona un parking, una fecha y una hora.</p>
+                        </div>
+                        <br/>
+                        <div class="block">
+                            <div class="columns is-gapless is-multiline">
+                                <div class="column is-half">
+                                    <form>
+                                        <input class="input" type="date" data-display-mode="inline" data-show-footer="false" data-show-header="false" data-lang="es-ES" data-color="dark">
+                                    </form>
+                                </div>
+                                <div class="column is-half">
+                                    <form id="newForm">
+                                        <div class="field has-text-left">
+                                            <label class="label">Parking</label>
+                                            <div class="control has-icons-left">
+                                                <div class="select is-fullwidth">
+                                                    <select id="nameSelect">
+													<option value="Salitre">Salitre</option>
+													<option value="Cervantes">Cervantes</option>
+													<option value="El_Palo">El Palo</option>
+													<option value="Av._de_Andalucia">Av. de Andalucía</option>
+													<option value="Camas">Camas</option>
+													<option value="Cruz_De_Humilladero">Cruz De Humilladero</option>
+													<option value="Alcazaba">Alcazaba</option>
+													<option value="San_Juan_De_La_Cruz">San Juan De La Cruz</option>
+													<option value="Pz._de_la_Marina">Pz. de la Marina</option>
+													<option value="Tejon_y_Rodriguez">Tejón y Rodriguez</option>
+												</select>
+                                                </div>
+                                                <div class="icon is-small is-left">
+                                                    <i class="fa fa-car"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="field has-text-left">
+                                            <label class="label">Hora</label>
+                                            <div class="control has-icons-left">
+                                                <div class="select is-fullwidth">
+                                                    <select id="hourSelect">
+													<option value="0">00:00-00:59</option>
+													<option value="1">01:00-01:59</option>
+													<option value="2">02:00-02:59</option>
+													<option value="3">03:00-03:59</option>
+													<option value="4">04:00-04:59</option>
+													<option value="5">05:00-05:59</option>
+													<option value="6">06:00-06:59</option>
+													<option value="7">07:00-07:59</option>
+													<option value="8">08:00-08:59</option>
+													<option value="9">09:00-09:59</option>
+													<option value="10">10:00-10:59</option>
+													<option value="11">11:00-11:59</option>
+													<option value="12">12:00-12:59</option>
+													<option value="13">13:00-13:59</option>
+													<option value="14">14:00-14:59</option>
+													<option value="15">15:00-15:59</option>
+													<option value="16">16:00-16:59</option>
+													<option value="17">17:00-17:59</option>
+													<option value="18">18:00-18:59</option>
+													<option value="19">19:00-19:59</option>
+													<option value="20">20:00-20:59</option>
+													<option value="21">21:00-21:59</option>
+													<option value="22">22:00-22:59</option>
+													<option value="23">23:00-23:59</option>
+												</select>
+                                                </div>
+                                                <div class="icon is-small is-left">
+                                                    <i class="fa fa-clock"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="control">
+                                                <input class="input is-medium" type="hidden" name="date" id="date">
+                                            </div>
+                                        </div>
+
+                                        <button class="button is-block is-info is-small">Submit</button>
+                                        <br />
+                                        <div id="messages"></div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <script src="/predict.js"></script>
 </body>
+<style>
+     :root {
+        --brandColor: hsl(204, 86%, 53%);
+        --background: rgb(247, 247, 247);
+        --textDark: hsla(0, 0%, 0%, 0.66);
+        --textLight: hsla(0, 0%, 0%, 0.33);
+    }
+    
+    body {
+        background: var(--background);
+        height: 100vh;
+        color: var(--textDark);
+    }
+    
+    .field:not(:last-child) {
+        margin-bottom: 1rem;
+    }
+    
+    .register {
+        margin-top: 10rem;
+        background: white;
+        border-radius: 10px;
+    }
+    
+    .left,
+    .right {
+        padding: 4.5rem;
+    }
+    
+    .left {
+        border-right: 5px solid var(--background);
+    }
+    
+    .left .title {
+        font-weight: 800;
+        letter-spacing: -2px;
+    }
+    
+    .left .colored {
+        color: var(--brandColor);
+        font-weight: 500;
+        margin-top: 1rem !important;
+        letter-spacing: -1px;
+    }
+    
+    .left p {
+        color: var(--textLight);
+        font-size: 1.15rem;
+    }
+    
+    .right .title {
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+    
+    .right .description {
+        margin-top: 1rem;
+        margin-bottom: 1rem !important;
+        color: var(--textLight);
+        font-size: 1.15rem;
+    }
+    
+    .right small {
+        color: var(--textLight);
+    }
+    
+    input {
+        font-size: 1rem;
+    }
+    
+    input:focus {
+        border-color: var(--brandColor) !important;
+        box-shadow: 0 0 0 1px var(--brandColor) !important;
+    }
+    
+    .fab,
+    .fas {
+        color: var(--textLight);
+        margin-right: 1rem;
+    }
+    
+    .datetimepicker {
+        z-index: 99;
+        border-radius: 4px;
+    }
+</style>
 
 </html>

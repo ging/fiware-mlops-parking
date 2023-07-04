@@ -70,11 +70,13 @@ RUN mkdir ./cep
 COPY runPTP.py ./
 COPY ./src ./prediction-job
 COPY ./pom.xml ./prediction-job
-COPY requirements-maven.txt ./
+COPY requirements.txt ./
 COPY mvn-entrypoint.sh /usr/local/bin/mvn-entrypoint.sh
 COPY settings-docker.xml /usr/share/maven/ref/
-RUN pip install --no-cache-dir -r requirements-maven.txt
+RUN pip install --no-cache-dir -r requirements.txt
 RUN mvn install:install-file -Dfile=/tmp/orion.spark.connector-1.2.2.1.jar -DgroupId=org.fiware.cosmos -DartifactId=orion.spark.connector -Dversion=1.2.2.1 -Dpackaging=jar
 RUN cd ./prediction-job
 
 CMD ["python","-u","./runPTP.py"]
+
+

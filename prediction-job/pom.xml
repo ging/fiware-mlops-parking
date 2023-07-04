@@ -45,11 +45,10 @@ under the License.
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<spark.version>2.4.3</spark.version>
+		<spark.version>2.4.5</spark.version>
 		<scala.binary.version>2.11</scala.binary.version>
 		<scala.version>2.11.12</scala.version>
 		<play2.version>2.4.6</play2.version>
-		<mlflow.version>2.3.2</mlflow.version>
 	</properties>
 
 	<dependencies>
@@ -60,12 +59,6 @@ under the License.
 		    <artifactId>spark-core_${scala.binary.version}</artifactId>
 		    <version>${spark.version}</version>
 		    <scope>provided</scope>
-		</dependency>
-		<dependency>
-			<type>jar</type>
-			<groupId>org.mlflow</groupId>
-			<artifactId>mlflow-client</artifactId>
-			<version>${mlflow.version}</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.spark/spark-mllib -->
 		<dependency>
@@ -111,13 +104,13 @@ under the License.
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>1.7.7</version>
-			<type>jar</type>
+			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 			<version>1.2.17</version>
-			<type>jar</type>
+			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>

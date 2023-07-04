@@ -2,53 +2,47 @@ package org.fiware.cosmos.orion.spark.connector.prediction
 
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.fiware.cosmos.orion.spark.connector.{ContentType, HTTPMethod, NGSILDReceiver, OrionSink, OrionSinkObject}
+import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.feature.{VectorAssembler}
-import org.apache.spark.ml.regression.{RandomForestRegressionModel}
+import org.apache.spark.ml.classification.{RandomForestClassificationModel}
 import org.apache.spark.sql.SparkSession
 
-
-case class PredictionResponse(capacity: Int, occupancy: Int, year: Int, month: Int, day: Int, time: Int, dateObserved: String) {
+case class PredictionResponse(socketId: String, predictionId: String, predictionValue: Int, name: String, weekday: Int, hour: Int, month: Int) {
   override def toString :String = s"""{
-  "capacity": { "value": "${capacity}", "type": "Property"},
-  "occupancy": { "value":"${occupancy}", "type": "Property"},
-  "year": { "value":${year}, "type": "Property"},
-  "month": { "value":${month}, "type": "Property"},
-  "day": { "value":${day}, "type": "Property"},
-  "time": { "value": ${time}, "type": "Property"},
-  "dateObserved": { "value": "${dateObserved}", "type": "Property"}
+  "socketId": { "value": "${socketId}", "type": "Property"},
+  "predictionId": { "value":"${predictionId}", "type": "Property"},
+  "predictionValue": { "value":${predictionValue}, "type": "Property"},
+  "name": { "value":"${name}", "type": "Property"},
+  "weekday": { "value":${weekday}, "type": "Property"},
+  "time": { "value": ${hour}, "type": "Property"},
+  "month": { "value": ${month}, "type": "Property"}
   }""".trim()
 }
-case class PredictionRequest(year: Int, month: Int, day: Int, weekDay: Int, time: Int, capacity: Int, dateObserved: String)
+case class PredictionRequest(name: String, weekday: Int, hour: Int, month: Int, socketId: String, predictionId: String)
 
 object PredictionJob {
 
-  final val HOST_CB = sys.env.getOrElse("HOST_CB", "localhost")
-  final val MASTER = sys.env.getOrElse("SPARK_MASTER", "local[*]")
-  final val MODEL_VERSION = sys.env.getOrElse("MODEL_VERSION", "1")
-  final val URL_CB = s"http://$HOST_CB:1026/ngsi-ld/v1/entities/urn:ngsi-ld:SupermarketForecast:001/attrs"
+  final val URL_CB = "http://orion:1026/ngsi-ld/v1/entities/urn:ngsi-ld:ResMalagaParkingPrediction1/attrs"
   final val CONTENT_TYPE = ContentType.JSON
   final val METHOD = HTTPMethod.PATCH
-  final val MODEL_PATH = s"./prediction-job/model/$MODEL_VERSION"
+  final val BASE_PATH = "./prediction-job"
 
-
-  def main(args: Array[String]): Unit = {
+    def main(args: Array[String]): Unit = {
     val spark = SparkSession
       .builder
-      .appName("PredictionJob")
-      .master(MASTER)
-      .config("spark.cores.max", (Runtime.getRuntime.availableProcessors / 2).toString)
+      .appName("PredictingParkingMalaga")
+      .master("local[*]")
       .getOrCreate()
-    import spark.implicits._
-    spark.sparkContext.setLogLevel("WARN")
 
+    spark.sparkContext.setLogLevel("WARN")
+    
+    println("STARTING")
+    
     val ssc = new StreamingContext(spark.sparkContext, Seconds(1))
 
-    val vectorAssembler = new VectorAssembler()
-      .setInputCols(Array("year", "month", "day", "weekDay", "time"))
-      .setOutputCol("features")
 
     // Load model
-    val model = RandomForestRegressionModel.load(MODEL_PATH)
+    val model = PipelineModel.load(BASE_PATH+"/model")
 
     // Create Orion Source. Receive notifications on port 9001
     val eventStream = ssc.receiverStream(new NGSILDReceiver(9001))
@@ -57,36 +51,37 @@ object PredictionJob {
     val processedDataStream = eventStream
       .flatMap(event => event.entities)
       .map(ent => {
-        val year = ent.attrs("year")("value").toString.toInt
+        println(s"ENTITY RECEIVED: $ent")
+        //val year = ent.attrs("year")("value").toString.toInt
         val month = ent.attrs("month")("value").toString.toInt
-        val day = ent.attrs("day")("value").toString.toInt
-        val time = ent.attrs("time")("value").toString.toInt
-        val weekDay = ent.attrs("weekDay")("value").toString.toInt
-        val capacity = ent.attrs("capacity")("value").toString.toInt
-        val dateObserved = ent.attrs("dateObserved")("value").toString
-        PredictionRequest(year, month, day, weekDay, time, capacity, dateObserved)
+        //val day = ent.attrs("day")("value").toString.toInt
+        val name = ent.attrs("name")("value").toString
+        val hour = ent.attrs("time")("value").toString.toInt
+        val weekday = ent.attrs("weekday")("value").toString.toInt
+        val socketId = ent.attrs("socketId")("value").toString
+        val predictionId = ent.attrs("predictionId")("value").toString
+        PredictionRequest(name, weekday, hour, month, socketId, predictionId)
       })
 
     // Feed each entity into the prediction model
     val predictionDataStream = processedDataStream
       .transform(rdd => {
-        val df = rdd.toDF
-        val vectorizedFeatures  = vectorAssembler
-          .setHandleInvalid("keep")
-          .transform(df)
+        val df = spark.createDataFrame(rdd)
         val predictions = model
-          .transform(vectorizedFeatures)
-          .select("capacity", "prediction", "year", "month", "day", "time", "dateObserved")
+          .transform(df)
+          .select("socketId","predictionId", "prediction", "name", "weekday", "hour", "month")
 
         predictions.toJavaRDD
     })
-      .map(pred=> PredictionResponse(pred.get(0).toString.toInt,
-        pred.get(1).toString.toFloat.round,
-        pred.get(2).toString.toInt,
-        pred.get(3).toString.toInt,
+      .map(pred=> PredictionResponse(
+        pred.get(0).toString,
+        pred.get(1).toString,
+        pred.get(2).toString.toFloat.round * 10,
+        pred.get(3).toString,
         pred.get(4).toString.toInt,
         pred.get(5).toString.toInt,
-        pred.get(6).toString)
+        pred.get(6).toString.toInt
+      )
     )
 
     // Convert the output to an OrionSinkObject and send to Context Broker
@@ -95,8 +90,8 @@ object PredictionJob {
 
     // Add Orion Sink
     OrionSink.addSink(sinkDataStream)
-    sinkDataStream.print()
-    predictionDataStream.print()
+    //sinkDataStream.print()
+    //predictionDataStream.print()
     ssc.start()
     ssc.awaitTermination()
   }
