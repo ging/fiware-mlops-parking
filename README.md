@@ -5,8 +5,8 @@
 
 MLOps use case with FIWARE to predict the % of occupancy of Malaga's Parkings.
 
-## Instructions
 
+## Instructions
 
 * Load and save the `prediction-job/malaga_parking.csv` [from external source](https://drive.upm.es/s/hA1jEQChEwZyVQj)
 ```shell
