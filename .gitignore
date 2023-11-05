@@ -3,6 +3,7 @@ prediction-job/.idea
 web/node_modules/*
 prediction-job/mlflow/artifacts/*
 prediction-job/mlflow/mlflow.db
+prediction-job/target
 web/.env
 maven/docker/prediction-job/*
 venv
