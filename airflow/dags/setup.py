@@ -21,7 +21,7 @@ default_args = {
 }
 
 training_dag = DAG(
-  'agile_data_science_batch_prediction_model_training',
+  'model_training',
   default_args=default_args,
   schedule_interval=None
 )
@@ -43,6 +43,7 @@ pyspark_date_bash_command = """
 
 # Train and persist the classifier model
 train_classifier_model_operator = BashOperator(
+  # run_as_user='root',
   task_id = "pyspark_train_classifier_model",
   bash_command = pyspark_bash_command,
   params = {

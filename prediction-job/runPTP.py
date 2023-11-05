@@ -21,7 +21,7 @@ class S():
 
 if __name__ == "__main__":
 
-    print("Spark Jar generated")
+    print("Jar generating...")
     S().execute_maven()
 
 

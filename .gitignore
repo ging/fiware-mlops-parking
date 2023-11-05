@@ -10,4 +10,5 @@ venv
 .vscode
 .bloop
 bin
-airflow/logs
+__pycache__
+logs

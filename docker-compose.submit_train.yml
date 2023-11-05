@@ -12,7 +12,7 @@ services:
       - "constraint:node==spark-submit-train"
       - "SERVER=proxy"
       - "MLFLOW_HOST=mlflow-server"
-      - "CSV_FILE=carrefour_data_v0.csv"
+      - "CSV_FILE=malaga_parking.csv"
     command: bash -c "sleep 20; sh /prediction-job/run-spark-jobs-train.sh"
     volumes:
       - ./prediction-job:/prediction-job
@@ -21,4 +21,6 @@ services:
 
 networks:
   fiware:
+    external: true
+    name: fiware
 

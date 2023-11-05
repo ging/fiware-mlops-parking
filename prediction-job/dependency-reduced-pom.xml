@@ -517,6 +517,7 @@
   <properties>
     <scala.version>2.11.12</scala.version>
     <scala.binary.version>2.11</scala.binary.version>
+    <mlflow.version>2.3.2</mlflow.version>
     <play2.version>2.4.6</play2.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spark.version>2.4.5</spark.version>

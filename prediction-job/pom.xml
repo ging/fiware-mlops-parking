@@ -49,6 +49,7 @@ under the License.
 		<scala.binary.version>2.11</scala.binary.version>
 		<scala.version>2.11.12</scala.version>
 		<play2.version>2.4.6</play2.version>
+		<mlflow.version>2.3.2</mlflow.version>
 	</properties>
 
 	<dependencies>
@@ -81,6 +82,13 @@ under the License.
 			<artifactId>spark-sql_${scala.binary.version}</artifactId>
 			<version>${spark.version}</version>
 			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<type>jar</type>
+			<groupId>org.mlflow</groupId>
+			<artifactId>mlflow-client</artifactId>
+			<version>${mlflow.version}</version>
 		</dependency>
 
 

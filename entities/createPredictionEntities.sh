@@ -1,11 +1,11 @@
-
-
-curl orion:1026/ngsi-ld/v1/entities -s -S -H 'Content-Type: application/ld+json' -d @- <<EOF
-{
-    "id": "urn:ngsi-ld:Supermarket:001",
-    "type": "Supermarket",
+curl -iX POST 'http://orion:1026/ngsi-ld/v1/entities/' \
+-H 'Content-Type: application/json' \
+-H 'Link: <https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.6.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"' \
+--data-raw '{
+    "id": "urn:ngsi-ld:MalagaParking:001",
+    "type": "OffStreetParking",
     "name": {
-      "value": "F. Summit Supermarket",
+      "value": "2",
       "type": "Property"
     },
     "capacity": {
@@ -16,73 +16,15 @@ curl orion:1026/ngsi-ld/v1/entities -s -S -H 'Content-Type: application/ld+json'
         "value": 20,
         "type": "Property"
       },
-      "year":{
-        "value": 2023,
-        "type": "Property"
-      },
-      "month":{
-        "value": 11,
-        "type": "Property"
-      },
-      "day":{
-        "value": 22,
-        "type": "Property"
-      },
-      "time": {
-        "value": 22,
-        "type": "Property"
-      },
-      "weekDay": {
-        "value": 5,
-        "type": "Property"
-      },
-      "dateObserved": {
-        "value": 0,
-        "type": "Property"
-      },
-    "@context": [
-      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-    ]
-}
-EOF
-
-
-
-
-
-curl orion:1026/ngsi-ld/v1/entities -s -S -H 'Content-Type: application/ld+json' -d @- <<EOF
-{
-    "id": "urn:ngsi-ld:SupermarketForecast:001",
-    "type": "Supermarket",
-    "name": {
-      "value": "F. Summit Supermarket Forecast",
-      "type": "Property"
-    },
-    "capacity": {
-        "value": 50,
-        "type": "Property"
-      },
-      "occupancy": {
-        "value": 0,
-        "type": "Property"
-      },
-      "year":{
-        "value": 0,
-        "type": "Property"
-      },
       "month":{
         "value": 0,
         "type": "Property"
       },
-      "day":{
+      "hour": {
         "value": 0,
         "type": "Property"
       },
-      "time": {
-        "value": 0,
-        "type": "Property"
-      },
-      "weekDay": {
+      "weekday": {
         "value": 0,
         "type": "Property"
       },
@@ -90,8 +32,8 @@ curl orion:1026/ngsi-ld/v1/entities -s -S -H 'Content-Type: application/ld+json'
         "value": 0,
         "type": "Property"
       },
-    "@context": [
-      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-    ]
-}
-EOF
+      "predictionValue": {
+        "value": 0,
+        "type": "Property"
+      }
+}'
